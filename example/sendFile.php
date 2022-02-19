@@ -17,4 +17,4 @@ $path = __DIR__ . "/../storage/";
 
 //Upload de Imagem
 //$uploadFile->upload($file, $path);
-var_dump($uploadFile->upload($file, $path));
+var_dump($uploadFile->upload($file, $path, 2048));

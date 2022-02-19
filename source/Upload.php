@@ -51,28 +51,71 @@ abstract class Upload
         return $this->name;
     }
 
-    /**
-     * upload
-     *
-     * @param  mixed $file - Arquivo
-     * @param  mixed $path - Caminho do diretorio para salvar o arquivo
+        
+    /** directory
+     * @param  string $pathDir
+     * @param  int $mode
      * @return void
      */
-    public function upload($file, $path)
+    public function directory(string $pathDir, int $mode = 0755): void
     {
-        //Pegando Caminho aonde sera salvo
-        $this->path = $path;
+        if (!file_exists($pathDir) || !is_dir($pathDir)) {
+            mkdir($pathDir, $mode, true);
+        }
+    }
 
-        //Pegando extensao do arquivo
-        $this->ext = mb_strtolower(pathinfo($file['name'])['extension']);
+    /** upload
+     * @param  mixed $file - Arquivo
+     * @param  string $path - Caminho do diretorio para salvar o arquivo
+     * @param  int $sizeKbLimit - Tamanho limite do arquivo em kB
+     * @return void
+     */
+    public function upload($file, $path, $sizeKbLimit)
+    {
+        if($file['error'] == 0)
+        {
+            //Transformando tamanho de kilobyte kB para byte B
+            $sizeBResult = $sizeKbLimit * 1024;
+            if($file['size'] > $sizeBResult)
+            {
+                //Transformando tamanho de kilobyte kB para megabyte MB
+                $sizeMbResult = $sizeKbLimit / 1024;
+                //Retorna false em caso de erro
+                echo("Arquivo excede o tamanho permitido de {$sizeMbResult}MB");
+                return false;
+            }
 
-        //Gerando nome do arquivo
-        $this->generateName();
+            //Pegando nome original do arquivo
+            $originalName = $file['name'];
 
-        //Compondo novo nome com a extensao do arquivo
-        $this->name = "{$this->name}." . $this->ext;
+            //Pegando extensao do arquivo
+            $this->ext = mb_strtolower(pathinfo($file['name'])['extension']);
 
-        //Movendo imagem para o diretorio de uploads
-        move_uploaded_file( $file['tmp_name'], $this->path . $this->name );
+            //Pegando Caminho aonde sera salvo
+            $this->path = $path;
+
+            //Gerando nome do arquivo
+            $this->generateName();
+
+            //Compondo novo nome com a extensao do arquivo
+            $this->name = "{$this->name}." . $this->ext;
+
+            //Função para verificar se diretorio existe
+            $this->directory($this->path);
+
+            //Movendo imagem para o diretorio de uploads
+            if(move_uploaded_file( $file['tmp_name'], $this->path . $this->name ))
+            {
+                //Upload realizado com sucesso
+                return $this->name;
+            }
+
+            //Retorna false em caso de erro
+            echo("Erro ao realizar upload do arquivo {$originalName}");
+            return false; 
+        }
+        //Retorna false em caso de erro
+        echo("Erro ao processar o arquivo");
+        return false; 
     }
 }

@@ -23,53 +23,71 @@ class Image extends Upload
         "jpg",
         "png"
     ];
-    
-    /**
-     * upload
-     *
-     * @param  mixed $file - Imagem
-     * @param  mixed $path - Caminho do diretorio para salvar a imagem
+
+    /** upload
+     * @param  mixed $file - Arquivo
+     * @param  string $path - Caminho do diretorio para salvar o arquivo
+     * @param  int $sizeKbLimit - Tamanho limite do arquivo em kB
      * @return void
      */
-    public function upload($file, $path)
+    public function upload($file, $path, $sizeKbLimit)
     {
-        if($file['error'] != 1)
+        if($file['error'] == 0)
         {
-            //Pegando Caminho aonde sera salvo
-            $this->path = $path;
+            //Transformando tamanho de kilobyte kB para byte B
+            $sizeBResult = $sizeKbLimit * 1024;
+            if($file['size'] > $sizeBResult)
+            {
+                //Transformando tamanho de kilobyte kB para megabyte MB
+                $sizeMbResult = $sizeKbLimit / 1024;
+                //Retorna false em caso de erro
+                echo("Arquivo excede o tamanho permitido de {$sizeMbResult}MB");
+                return false;
+            }
+
+            //Pegando nome original do arquivo
+            $originalName = $file['name'];
 
             //Pegando extensao do arquivo
             $this->ext = mb_strtolower(pathinfo($file['name'])['extension']);
+
+            //Pegando Caminho aonde sera salvo
+            $this->path = $path;
 
             //Gerando nome do arquivo
             $this->generateName();
 
             //Compondo novo nome com a extensao do arquivo
             $this->name = "{$this->name}." . $this->ext;
-
+            
             //Verificando o Tipo/Extensao do arquivo
             if (!in_array($file['type'], static::$allowTypes) || !in_array($this->ext, static::$extensions)) {
-                throw new \Exception("Not a valid file type or extension");
+                //throw new \Exception("Not a valid file type or extension");
+                echo("Formato do arquivo {$originalName} é inválido");
                 return false;
             }
+
+            //Função para verificar se diretorio existe
+            $this->directory($this->path);
 
             //Movendo imagem para o diretorio de uploads
             if(move_uploaded_file($file['tmp_name'], $this->path . $this->name))
             {                
                 //Upload realizado com sucesso
-                return true;
+                return $this->name;
             }
 
             //Retorna false em caso de erro
+            echo("Erro ao realizar upload do arquivo {$originalName}");
             return false; 
         }
+        
         //Retorna false em caso de erro
-        return false;        
+        echo("Erro ao processar o arquivo");
+        return false;          
     }
     
-    /**
-     * uploadCompressImage
-     *
+    /** uploadCompressImage
      * @param  mixed $fileSource - Um resource de imagem, retornado por funções de criação de imagens
      * @param  mixed $path - O caminho para salvar o arquivo.
      * @param  int $quality - vai de 0 (pior qualidade, menor arquivo) a 100 (melhor qualidade, maior arquivo)
@@ -86,6 +104,9 @@ class Image extends Upload
             //Pegando Caminho aonde sera salvo
             $this->path = $path;
 
+            //Pegando nome original do arquivo
+            $originalName = $fileSource['name'];
+
             //Pegando extensao do arquivo
             $this->ext = mb_strtolower(pathinfo($fileSource['name'])['extension']);
 
@@ -94,6 +115,13 @@ class Image extends Upload
 
             //Compondo novo nome com a extensao do arquivo
             $this->name = "{$this->name}." . $this->ext;
+
+            //Verificando o Tipo/Extensao do arquivo
+            if (!in_array($fileSource['type'], static::$allowTypes) || !in_array($this->ext, static::$extensions)) {
+                //throw new \Exception("Not a valid file type or extension");
+                echo("Formato do arquivo {$originalName} é inválido");
+                return false;
+            }
 
             //Obtem o tamanho de uma imagem
             $fileInfo = getimagesize($fileTemp);
@@ -111,17 +139,22 @@ class Image extends Upload
                 $image = imagecreatefromgif($fileTemp);
             } 
 
+            //Função para verificar se diretorio existe
+            $this->directory($this->path);
+
             //Salvando imagem comprimida
             if(imagejpeg($image, $this->path . $this->name, $quality))
             {
                 //Upload realizado com sucesso
-                return true;
+                return $this->name;
             }
 
             //Retorna false em caso de erro
-            return false;
+            echo("Erro ao realizar upload do arquivo");
+            return false; 
         }        
         //Retorna false em caso de erro
-        return false;
+        echo("Erro ao processar o arquivo");
+        return false;  
     }
 }
